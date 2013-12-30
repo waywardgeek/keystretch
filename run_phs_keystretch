@@ -1,0 +1,4 @@
+#!/bin/bash
+
+#Usage: phs_keystretch outlen password salt t_cost m_cost
+time ./phs_keystretch 32 "Don't tell" deadbeefbaddaddeadbeefbaddad 1 2048
