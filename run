@@ -1,3 +1,0 @@
-#!/bin/bash
-
-time ./keystretch 1 2048 16 2 32 deadbeefbaddaddeadbeefbaddad "Don't tell"

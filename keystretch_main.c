@@ -10,9 +10,10 @@ static void usage(char *format, ...) {
     va_start(ap, format);
     vfprintf(stderr, (char *)format, ap);
     va_end(ap);
-    fprintf(stderr, "\nUsage: keystretch <initial hashing factor> <memory size> <page size> <num threads> +\n"
+    fprintf(stderr, "\nUsage: keystretch <initial hashing factor> <hashing multiplier> <memory size> <page size> <num threads> +\n"
             "        <derived key size> <salt in hex> <password>\n"
         "    Initial hashing factor is 4096 + N*1024 rounds of SHA-256\n"
+        "    Hashing multiplier is an integer >=1 and mutiplies the number of times we hash memory\n"
         "    Memory size in MB\n"
         "    Page size in KB\n"
         "    Hashing factor is integer difficulty multiplier\n"
@@ -24,16 +25,6 @@ static uint32 readUint32(char **argv, uint32 xArg) {
     char *endPtr;
     char *p = argv[xArg];
     uint32 value = strtol(p, &endPtr, 0);
-    if(*p == '\0' || *endPtr != '\0') {
-        usage("Invalid integer for parameter %u", xArg);
-    }
-    return value;
-}
-
-static uint64 readUint64(char **argv, uint32 xArg) {
-    char *endPtr;
-    char *p = argv[xArg];
-    uint64 value = strtoll(p, &endPtr, 0);
     if(*p == '\0' || *endPtr != '\0') {
         usage("Invalid integer for parameter %u", xArg);
     }
@@ -102,27 +93,32 @@ static void printHex(
     }
 }
 
-static void readArguments(int argc, char **argv, uint32 *initialHashingFactor, uint64 *memorySize, uint32 *pageSize,
-    uint32 *numThreads, uint32 *derivedKeySize, uint8 **salt, uint32 *saltSize,
-    char **password, uint32 *passwordSize) {
-    if(argc != 8) {
+static void readArguments(int argc, char **argv, uint32 *initialHashingFactor, uint32 *hashingMultiplier,
+        uint64 *memorySize, uint32 *pageSize, uint32 *numThreads, uint32 *derivedKeySize,
+        uint8 **salt, uint32 *saltSize, char **password, uint32 *passwordSize) {
+    if(argc != 9) {
         usage("Incorrect number of arguments");
     }
     *initialHashingFactor = readUint32(argv, 1);
-    *memorySize = readUint64(argv, 2) * (1 << 20); // Number of MB
-    *pageSize = readUint32(argv, 3) * (1 << 10); // Number of KB
-    *numThreads = readUint32(argv, 4);
-    *derivedKeySize = readUint32(argv, 5);
-    *salt = readHexSalt(argv[6], saltSize);
-    *password = argv[7];
+    *hashingMultiplier = readUint32(argv, 2);
+    *memorySize = readUint32(argv, 3) * (1LL << 20); // Number of MB
+    *pageSize = readUint32(argv, 4) * (1 << 10); // Number of KB
+    *numThreads = readUint32(argv, 5);
+    *derivedKeySize = readUint32(argv, 6);
+    *salt = readHexSalt(argv[7], saltSize);
+    *password = argv[8];
     *passwordSize = strlen(*password);
 }
 
 // Verify the input parameters are reasonalble.
-static void verifyParameters(uint32 initialHashingFactor, uint64 memorySize, uint32 pageSize, uint32 numThreads,
-        uint32 derivedKeySize, uint32 saltSize, uint32 passwordSize) {
+static void verifyParameters(uint32 initialHashingFactor, uint32 hashingMultiplier, uint64
+        memorySize, uint32 pageSize, uint32 numThreads, uint32 derivedKeySize, uint32 saltSize,
+        uint32 passwordSize) {
     if(initialHashingFactor > (1 << 20)) {
         usage("Invalid hashing factor");
+    }
+    if(hashingMultiplier < 1 || hashingMultiplier > (1 << 20)) {
+        usage("Invalid hashing multipler");
     }
     if(memorySize > (1LL << 32)*100 || memorySize < (1 << 20)) {
         usage("Invalid memory size");
@@ -158,15 +154,16 @@ static void verifyParameters(uint32 initialHashingFactor, uint64 memorySize, uin
 
 int main(int argc, char **argv) {
     uint64 memorySize;
-    uint32 initialHashingFactor, pageSize, numThreads, derivedKeySize, saltSize, passwordSize;
+    uint32 initialHashingFactor, hashingMultiplier, pageSize, numThreads, derivedKeySize, saltSize, passwordSize;
     uint8 *salt;
     char *password;
-    readArguments(argc, argv, &initialHashingFactor, &memorySize, &pageSize, &numThreads, &derivedKeySize,
-        &salt, &saltSize, &password, &passwordSize);
-    verifyParameters(initialHashingFactor, memorySize, pageSize, numThreads, derivedKeySize, saltSize, passwordSize);
+    readArguments(argc, argv, &initialHashingFactor, &hashingMultiplier, &memorySize, &pageSize, &numThreads,
+        &derivedKeySize, &salt, &saltSize, &password, &passwordSize);
+    verifyParameters(initialHashingFactor, hashingMultiplier, memorySize, pageSize, numThreads, derivedKeySize,
+        saltSize, passwordSize);
     uint8 *derivedKey = (uint8 *)calloc(derivedKeySize, sizeof(uint8));
-    if(!keystretch(initialHashingFactor, memorySize, pageSize, numThreads, derivedKey, derivedKeySize, salt, saltSize,
-            (uint8 *)password, passwordSize, false, false)) {
+    if(!keystretch(initialHashingFactor, hashingMultiplier, memorySize, pageSize, numThreads, derivedKey, derivedKeySize,
+            salt, saltSize, (uint8 *)password, passwordSize, true, false, false)) {
         fprintf(stderr, "Key stretching failed.\n");
         return 1;
     }

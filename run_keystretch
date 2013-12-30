@@ -1,0 +1,5 @@
+#!/bin/bash
+
+#Usage: keystretch <initial hashing factor> <hashing multiplier> <memory size> <page size> <num threads> +
+#        <derived key size> <salt in hex> <password>\n"
+time ./keystretch 0 1 2048 16 2 32 deadbeefbaddaddeadbeefbaddad "Don't tell"
