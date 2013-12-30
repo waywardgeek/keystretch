@@ -27,12 +27,12 @@ Scrypt relies on Salsa20/8, which is a well known algorithm.  It's fast, but sti
 times slower than just filling memory with a counter.  At the same time, there seems to be
 little need for such a secure RNG.  It has only three goals, AFAIK:
 
-    1. It should generate data efficiently on a CPU, so we can make memory bandwidth the
-      bottleneck, just like it is for an attacker
-    2. It should not allow an attacker easily to compute V(i), without first computing
-      V(0)...V(i-1).  Here V is memory and i is the ith memory location.
-    3. It should have a large state, so the attacker can't just cache RNG states, and must
-       fill memory instead.
+- It should generate data efficiently on a CPU, so we can make memory bandwidth the
+  bottleneck, just like it is for an attacker
+- It should not allow an attacker easily to compute V(i), without first computing
+  V(0)...V(i-1).  Here V is memory and i is the ith memory location.
+- It should have a large state, so the attacker can't just cache RNG states, and must
+  fill memory instead.
 
 Faster hashing should make use of 64-bit data paths without killing the performance on
 32-bit machines.  It should focus on speed over proven security, but make it simple to
