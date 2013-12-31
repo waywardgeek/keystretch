@@ -123,7 +123,7 @@ static void verifyParameters(uint32 initialHashingFactor, uint32 hashingMultipli
     if(memorySize > (1LL << 32)*100 || memorySize < (1 << 20)) {
         usage("Invalid memory size");
     }
-    if(pageSize > (1 << 18) || pageSize < (1 << 8)) {
+    if(pageSize > (1 << 28) || pageSize < (1 << 8)) {
         usage("Invalid page size");
     }
     if(numThreads == 0 || numThreads > MAX_THREADS) {

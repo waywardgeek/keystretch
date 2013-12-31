@@ -93,6 +93,8 @@ bool keystretch(uint32 initialHashingFactor, uint32 hashingMultiplier, uint64 me
         uint32 pageSize, uint32 numThreads, void *derivedKey, uint32 derivedKeySize, const void *salt,
         uint32 saltSize, void *password, uint32 passwordSize, bool clearPassword, bool clearMemory, bool freeMemory) {
 
+    printf("hashingFactor:%u hashingMultiplier:%u memorySize:%llu pageSize:%u numThreads:%u\n",
+        initialHashingFactor, hashingMultiplier, memorySize, pageSize, numThreads);
     // Step 1: Do the 2X or more of the max key stretching OpenSSL Truecrypt allow, and and clear the password
     PBKDF2_SHA256(password, passwordSize, salt, saltSize, (4 + initialHashingFactor) << 10, derivedKey, derivedKeySize);
     if(clearPassword) {
