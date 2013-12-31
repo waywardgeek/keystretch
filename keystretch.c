@@ -90,14 +90,14 @@ static void *hashMem(void *threadContextPtr) {
     clearMemory          - Set memory to 0's before returning
     freeMemory           - Free memory before returning
 */
-bool keystretch(uint32 initialHashingFactor, uint32 cpuWorkMultiplier, uint64 memorySize,
+bool keystretch(uint32 sha256HashRounds, uint32 cpuWorkMultiplier, uint64 memorySize,
         uint32 pageSize, uint32 numThreads, void *derivedKey, uint32 derivedKeySize, const void *salt,
         uint32 saltSize, void *password, uint32 passwordSize, bool clearPassword, bool clearMemory, bool freeMemory) {
 
-    printf("hashingFactor:%u cpuWorkMultiplier:%u memorySize:%llu pageSize:%u numThreads:%u\n",
-        initialHashingFactor, cpuWorkMultiplier, memorySize, pageSize, numThreads);
+    printf("sha256HashRounds:%u cpuWorkMultiplier:%u memorySize:%llu pageSize:%u numThreads:%u\n",
+        sha256HashRounds, cpuWorkMultiplier, memorySize, pageSize, numThreads);
     // Step 1: Do the 2X or more of the max key stretching OpenSSL Truecrypt allow, and and clear the password
-    PBKDF2_SHA256(password, passwordSize, salt, saltSize, initialHashingFactor << 10, derivedKey, derivedKeySize);
+    PBKDF2_SHA256(password, passwordSize, salt, saltSize, sha256HashRounds, derivedKey, derivedKeySize);
     if(clearPassword) {
         memset(password, '\0', passwordSize); // It's a good idea to clear the password ASAP
     }
@@ -180,6 +180,6 @@ bool keystretch(uint32 initialHashingFactor, uint32 cpuWorkMultiplier, uint64 me
 // hashing session.
 int PHS(void *out, size_t outlen, const void *in, size_t inlen, const void *salt, size_t saltlen,
         unsigned int t_cost, unsigned int m_cost) {
-    return keystretch(1, t_cost, m_cost, 16*(1 << 10), 2, out, outlen, salt, saltlen, (void *)in, inlen,
+    return keystretch(4096, t_cost, m_cost, 16*(1 << 10), 2, out, outlen, salt, saltlen, (void *)in, inlen,
         false, false, false);
 }
