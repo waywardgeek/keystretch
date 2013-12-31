@@ -12,7 +12,7 @@ static void usage(char *format, ...) {
     va_end(ap);
     fprintf(stderr, "\nUsage: phs_keystretch outlen password salt t_cost m_cost\n"
         "    outlen is the output derived key in bytes\n"
-        "    t_cost is an integer multiplier on number of times to hash memory\n"
+        "    t_cost is an integer multiplier CPU work\n"
         "    m_cost is the ammount of memory to use in MB\n");
     exit(1);
 }
@@ -90,7 +90,7 @@ static void printHex(
 }
 
 static void readArguments(int argc, char **argv, uint32 *derivedKeySize, char **password, uint32 *passwordSize,
-        uint8 **salt, uint32 *saltSize, uint32 *hashingMultiplier, uint64 *memorySize) {
+        uint8 **salt, uint32 *saltSize, uint32 *cpuWorkMultiplier, uint64 *memorySize) {
     if(argc != 6) {
         usage("Incorrect number of arguments");
     }
@@ -98,14 +98,14 @@ static void readArguments(int argc, char **argv, uint32 *derivedKeySize, char **
     *password = argv[2];
     *passwordSize = strlen(*password);
     *salt = readHexSalt(argv[3], saltSize);
-    *hashingMultiplier = readUint32(argv, 4);
+    *cpuWorkMultiplier = readUint32(argv, 4);
     *memorySize = readUint32(argv, 5) * (1LL << 20); // Number of MB
 }
 
 // Verify the input parameters are reasonalble.
-static void verifyParameters(uint32 hashingMultiplier, uint64 memorySize, uint32
+static void verifyParameters(uint32 cpuWorkMultiplier, uint64 memorySize, uint32
         derivedKeySize, uint32 saltSize, uint32 passwordSize) {
-    if(hashingMultiplier < 1 || hashingMultiplier > (1 << 20)) {
+    if(cpuWorkMultiplier < 1 || cpuWorkMultiplier > (1 << 20)) {
         usage("Invalid hashing multipler");
     }
     if(memorySize > (1LL << 32)*100 || memorySize < (1 << 20)) {
@@ -130,13 +130,13 @@ static void verifyParameters(uint32 hashingMultiplier, uint64 memorySize, uint32
 
 int main(int argc, char **argv) {
     uint64 memorySize;
-    uint32 hashingMultiplier, derivedKeySize, saltSize, passwordSize;
+    uint32 cpuWorkMultiplier, derivedKeySize, saltSize, passwordSize;
     uint8 *salt;
     char *password;
-    readArguments(argc, argv, &derivedKeySize, &password, &passwordSize, &salt, &saltSize, &hashingMultiplier, &memorySize);
-    verifyParameters(hashingMultiplier, memorySize, derivedKeySize, saltSize, passwordSize);
+    readArguments(argc, argv, &derivedKeySize, &password, &passwordSize, &salt, &saltSize, &cpuWorkMultiplier, &memorySize);
+    verifyParameters(cpuWorkMultiplier, memorySize, derivedKeySize, saltSize, passwordSize);
     uint8 *derivedKey = (uint8 *)calloc(derivedKeySize, sizeof(uint8));
-    if(!PHS(derivedKey, derivedKeySize, password, passwordSize, salt, saltSize, hashingMultiplier, memorySize)) {
+    if(!PHS(derivedKey, derivedKeySize, password, passwordSize, salt, saltSize, cpuWorkMultiplier, memorySize)) {
         fprintf(stderr, "Key stretching failed.\n");
         return 1;
     }

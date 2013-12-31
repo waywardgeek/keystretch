@@ -23,6 +23,7 @@ struct threadContextStruct {
     uint32 pageLength;
     uint32 numPages;
     uint32 keyLength;
+    uint32 cpuWorkMultiplier;
     volatile bool spinLock;
 };
 
@@ -33,11 +34,11 @@ static void fillPage(ThreadContext c, uint64 *key, uint32 fromPageNum, uint32 to
     uint64 *toPage = c->mem + toPageNum*pageLength;
     uint32 pageMask = pageLength - 1;
     uint64 keyData, pageData, lastPageData = 1;
-    uint32 i;
+    uint32 numHashes = pageLength*c->cpuWorkMultiplier;
     uint64 *k = key;
     uint64 *kEnd = key + c->keyLength;
     uint64 *t = toPage;
-    for(i = 0; i < pageLength; i++) {
+    while(numHashes--) {
         keyData = *k;
         *t++ = keyData;
         pageData = fromPage[keyData & pageMask];
@@ -89,14 +90,14 @@ static void *hashMem(void *threadContextPtr) {
     clearMemory          - Set memory to 0's before returning
     freeMemory           - Free memory before returning
 */
-bool keystretch(uint32 initialHashingFactor, uint32 hashingMultiplier, uint64 memorySize,
+bool keystretch(uint32 initialHashingFactor, uint32 cpuWorkMultiplier, uint64 memorySize,
         uint32 pageSize, uint32 numThreads, void *derivedKey, uint32 derivedKeySize, const void *salt,
         uint32 saltSize, void *password, uint32 passwordSize, bool clearPassword, bool clearMemory, bool freeMemory) {
 
-    printf("hashingFactor:%u hashingMultiplier:%u memorySize:%llu pageSize:%u numThreads:%u\n",
-        initialHashingFactor, hashingMultiplier, memorySize, pageSize, numThreads);
+    printf("hashingFactor:%u cpuWorkMultiplier:%u memorySize:%llu pageSize:%u numThreads:%u\n",
+        initialHashingFactor, cpuWorkMultiplier, memorySize, pageSize, numThreads);
     // Step 1: Do the 2X or more of the max key stretching OpenSSL Truecrypt allow, and and clear the password
-    PBKDF2_SHA256(password, passwordSize, salt, saltSize, (4 + initialHashingFactor) << 10, derivedKey, derivedKeySize);
+    PBKDF2_SHA256(password, passwordSize, salt, saltSize, initialHashingFactor << 10, derivedKey, derivedKeySize);
     if(clearPassword) {
         memset(password, '\0', passwordSize); // It's a good idea to clear the password ASAP
     }
@@ -125,37 +126,35 @@ bool keystretch(uint32 initialHashingFactor, uint32 hashingMultiplier, uint64 me
     pthread_t threads[MAX_THREADS];
     struct threadContextStruct contexts[MAX_THREADS];
     ThreadContext c = NULL;
-    uint32 i;
-    for(i = 0; i < hashingMultiplier; i++) {
-        // Launch the threads, using a spin-lock for synchronization.  The first thread starts
-        // with the spin-lock, and then passes it to the next round-robin.
-        int rc;
-        long t;
-        volatile uint32 nextPageNum = 1;
-        for(t = 0; t < numThreads; t++) {
-            c = contexts + t;
-            c->mem = mem;
-            c->threadKeys = threadKeys;
-            c->keyLength = keyLength;
-            c->pageLength = pageLength;
-            c->numPages = numPages;
-            c->nextPageNumPtr = &nextPageNum;
-            c->nextContext = c + 1;
+    // Launch the threads, using a spin-lock for synchronization.  The first thread starts
+    // with the spin-lock, and then passes it to the next round-robin.
+    int rc;
+    long t;
+    volatile uint32 nextPageNum = 1;
+    for(t = 0; t < numThreads; t++) {
+        c = contexts + t;
+        c->mem = mem;
+        c->threadKeys = threadKeys;
+        c->keyLength = keyLength;
+        c->pageLength = pageLength;
+        c->numPages = numPages;
+        c->cpuWorkMultiplier = cpuWorkMultiplier;
+        c->nextPageNumPtr = &nextPageNum;
+        c->nextContext = c + 1;
+    }
+    c->nextContext = contexts;
+    contexts[0].spinLock = true;
+    for(t = 0; t < numThreads; t++) {
+        c = contexts + t;
+        rc = pthread_create(&threads[t], NULL, hashMem, (void *)c);
+        if (rc){
+            fprintf(stderr, "Unable to start threads\n");
+            return false;
         }
-        c->nextContext = contexts;
-        contexts[0].spinLock = true;
-        for(t = 0; t < numThreads; t++) {
-            c = contexts + t;
-            rc = pthread_create(&threads[t], NULL, hashMem, (void *)c);
-            if (rc){
-                fprintf(stderr, "Unable to start threads\n");
-                return false;
-            }
-        }
-        // Wait for threads to finish
-        for(t = 0; t < numThreads; t++) {
-            (void)pthread_join(threads[t], NULL);
-        }
+    }
+    // Wait for threads to finish
+    for(t = 0; t < numThreads; t++) {
+        (void)pthread_join(threads[t], NULL);
     }
 
     // Hash derived keys together and clear the thread keys
@@ -181,6 +180,6 @@ bool keystretch(uint32 initialHashingFactor, uint32 hashingMultiplier, uint64 me
 // hashing session.
 int PHS(void *out, size_t outlen, const void *in, size_t inlen, const void *salt, size_t saltlen,
         unsigned int t_cost, unsigned int m_cost) {
-    return keystretch(0, t_cost, m_cost, 16*(1 << 10), 2, out, outlen, salt, saltlen, (void *)in, inlen,
+    return keystretch(1, t_cost, m_cost, 16*(1 << 10), 2, out, outlen, salt, saltlen, (void *)in, inlen,
         false, false, false);
 }

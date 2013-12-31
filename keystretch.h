@@ -8,7 +8,7 @@ typedef unsigned int uint32;
 #define MAX_THREADS 16 // Must be power of 2
 #define THREAD_MASK (MAX_THREADS - 1)
 
-bool keystretch(uint32 initialHashingFactor, uint32 hashingMultiplier, uint64 memorySize, uint32
+bool keystretch(uint32 initialHashingFactor, uint32 cpuWorkMultiplier, uint64 memorySize, uint32
         pageSize, uint32 numThreads, void *derivedKey, uint32 derivedKeySize, const void *salt, uint32 saltSize,
         void *password, uint32 passwordSize, bool clearPassword, bool clearMemory, bool freeMemory);
 
