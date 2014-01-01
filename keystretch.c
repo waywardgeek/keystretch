@@ -32,25 +32,22 @@ static void fillPage(ThreadContext c, uint64 *key, uint32 fromPageNum, uint32 to
     uint32 pageLength = c->pageLength;
     uint64 *fromPage = c->mem + fromPageNum*pageLength;
     uint64 *toPage = c->mem + toPageNum*pageLength;
-    uint32 pageMask = (pageLength - 1) & ~7;
+    uint32 pageMask = pageLength - 1;
     uint64 keyData, pageData, lastPageData = 1;
-    uint32 numHashes = (pageLength*c->cpuWorkMultiplier) >> 3;
+    uint32 numHashes = pageLength*c->cpuWorkMultiplier;
     uint64 *k = key;
     uint64 *kEnd = key + c->keyLength;
     uint64 *t = toPage;
-    uint32 pageAddr, i;
     while(numHashes--) {
-        pageAddr = lastPageData & pageMask;
-        for(i = 0; i < 8; i++) {
-            keyData = *k;
-            *t++ = keyData;
-            pageData = fromPage[pageAddr++];
-            *k++ += (pageData*keyData) ^ lastPageData;
-            if(k == kEnd) {
-                k = key;
-            }
-            lastPageData = pageData;
+        keyData = *k;
+        //printf("%llu\n", keyData);
+        *t++ = keyData;
+        pageData = fromPage[keyData & pageMask];
+        *k++ += (pageData*keyData) ^ lastPageData;
+        if(k == kEnd) {
+            k = key;
         }
+        lastPageData = pageData;
     }
 }
 
