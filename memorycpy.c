@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define MEM_SIZE (1LL << 32)
+#define MEM_SIZE ((1LL << 31) + 8)
 #define MEM_LENGTH (MEM_SIZE/sizeof(unsigned long long))
 #define BLOCK_SIZE (1LL << 14)
 #define BLOCK_LENGTH (BLOCK_SIZE/sizeof(unsigned long long))
@@ -15,7 +15,7 @@
 
 int main() {
     unsigned long long *mem = (unsigned long long *)malloc(MEM_SIZE);
-    memcpy(mem + (MEM_LENGTH >> 1), mem, (MEM_LENGTH >> 1)*sizeof(unsigned long long));
+    memmove(mem, mem + 8, MEM_LENGTH*sizeof(unsigned long long));
     printf("%u\n", ((unsigned int *)mem)[rand() % MEM_LENGTH]);
     return 0;
 }
