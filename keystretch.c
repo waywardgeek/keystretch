@@ -28,7 +28,6 @@ struct threadContextStruct {
 static void fillPage(ThreadContext c, uint32 fromPageNum, uint32 toPageNum) {
     uint32 pageLength = c->pageLength;
     uint64 *fromPage = c->mem + fromPageNum*pageLength;
-    uint64 *toPage = c->mem + toPageNum*pageLength;
     uint64 key0 = c->key[0];
     uint64 key1 = c->key[1];
     uint64 key2 = c->key[2];
@@ -38,52 +37,54 @@ static void fillPage(ThreadContext c, uint32 fromPageNum, uint32 toPageNum) {
     uint64 key6 = c->key[6];
     uint64 key7 = c->key[7];
     uint64 lastPageData =  c->lastPageData;
-    uint64 lastLastPageData =  c->lastPageData;
     uint64 pageData0, pageData1, pageData2, pageData3;
     uint64 pageData4, pageData5, pageData6, pageData7 = 0;
     uint32 pageMask = pageLength - 1;
-    uint32 numLoops = pageLength >> 3;
-    while(numLoops--) {
-        *toPage++ = key0;
-        *toPage++ = key1;
-        *toPage++ = key2;
-        *toPage++ = key3;
-        *toPage++ = key4;
-        *toPage++ = key5;
-        *toPage++ = key6;
-        *toPage++ = key7;
+    uint32 i;
+    for(i = 0; i < c->cpuWorkMultiplier; i++) {
+        uint32 numLoops = pageLength >> 3;
+        uint64 *toPage = c->mem + toPageNum*pageLength;
+        while(numLoops--) {
+            pageData0 = fromPage[key0 & pageMask];
+            pageData1 = fromPage[key1 & pageMask];
+            pageData2 = fromPage[key2 & pageMask];
+            pageData3 = fromPage[key3 & pageMask];
+            pageData4 = fromPage[key4 & pageMask];
+            pageData5 = fromPage[key5 & pageMask];
+            pageData6 = fromPage[key6 & pageMask];
+            pageData7 = fromPage[key7 & pageMask];
 
-/*
-        printf("%llu\n", key0);
-        printf("%llu\n", key1);
-        printf("%llu\n", key2);
-        printf("%llu\n", key3);
-        printf("%llu\n", key4);
-        printf("%llu\n", key5);
-        printf("%llu\n", key6);
-        printf("%llu\n", key7);
-*/
+            key0 += (pageData0*key1) ^ lastPageData;
+            key1 += (pageData1*key2) ^ pageData0;
+            key2 += (pageData2*key3) ^ pageData1;
+            key3 += (pageData3*key4) ^ pageData2;
+            key4 += (pageData4*key5) ^ pageData3;
+            key5 += (pageData5*key6) ^ pageData4;
+            key6 += (pageData6*key7) ^ pageData5;
+            key7 += (pageData7*key0) ^ pageData6;
+            lastPageData = pageData7;
 
-        pageData0 = fromPage[key0 & pageMask];
-        pageData1 = fromPage[key1 & pageMask];
-        pageData2 = fromPage[key2 & pageMask];
-        pageData3 = fromPage[key3 & pageMask];
-        pageData4 = fromPage[key4 & pageMask];
-        pageData5 = fromPage[key5 & pageMask];
-        pageData6 = fromPage[key6 & pageMask];
-        pageData7 = fromPage[key7 & pageMask];
+            *toPage++ = key0;
+            *toPage++ = key1;
+            *toPage++ = key2;
+            *toPage++ = key3;
+            *toPage++ = key4;
+            *toPage++ = key5;
+            *toPage++ = key6;
+            *toPage++ = key7;
 
+    /*
+            printf("%llu\n", key0);
+            printf("%llu\n", key1);
+            printf("%llu\n", key2);
+            printf("%llu\n", key3);
+            printf("%llu\n", key4);
+            printf("%llu\n", key5);
+            printf("%llu\n", key6);
+            printf("%llu\n", key7);
+    */
 
-        key0 += (pageData0*key1) ^ lastLastPageData;
-        key1 += (pageData1*key2) ^ pageData0;
-        key2 += (pageData2*key3) ^ pageData1;
-        key3 += (pageData3*key4) ^ pageData2;
-        key4 += (pageData4*key5) ^ pageData3;
-        key5 += (pageData5*key6) ^ pageData4;
-        key6 += (pageData6*key7) ^ pageData5;
-        key7 += (pageData7*key0) ^ pageData6;
-        lastLastPageData = lastPageData;
-        lastPageData = pageData7;
+        }
     }
     c->key[0] = key0;
     c->key[1] = key1;
