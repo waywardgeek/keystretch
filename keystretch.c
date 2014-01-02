@@ -39,20 +39,20 @@ static void fillPage(ThreadContext c, uint32 fromPageNum, uint32 toPageNum) {
     uint64 lastPageData =  c->lastPageData;
     uint64 pageData0, pageData1, pageData2, pageData3;
     uint64 pageData4, pageData5, pageData6, pageData7 = 0;
-    uint32 pageMask = (pageLength - 1) & ~0x7;
     uint32 workMultiplier = c->cpuWorkMultiplier;
     while(workMultiplier--) {
-        uint32 numLoops = pageLength >> 3;
+        uint32 numLoops = pageLength;
         uint64 *toPage = c->mem + toPageNum*pageLength;
-        while(numLoops--) {
-            pageData0 = fromPage[key0 & pageMask];
-            pageData1 = fromPage[key1 & pageMask];
-            pageData2 = fromPage[key2 & pageMask];
-            pageData3 = fromPage[key3 & pageMask];
-            pageData4 = fromPage[key4 & pageMask];
-            pageData5 = fromPage[key5 & pageMask];
-            pageData6 = fromPage[key6 & pageMask];
-            pageData7 = fromPage[key7 & pageMask];
+        uint32 i;
+        for(i = 0; i < numLoops; ) {
+            pageData0 = fromPage[i++];
+            pageData1 = fromPage[i++];
+            pageData2 = fromPage[i++];
+            pageData3 = fromPage[i++];
+            pageData4 = fromPage[i++];
+            pageData5 = fromPage[i++];
+            pageData6 = fromPage[i++];
+            pageData7 = fromPage[i++];
 
             key0 += (pageData0*key1) ^ lastPageData;
             key1 += (pageData1*key2) ^ pageData0;
