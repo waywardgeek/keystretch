@@ -167,8 +167,9 @@ bool keystretch(uint32 sha256HashRounds, uint32 cpuWorkMultiplier, uint64 memory
         c->pageLength = pageLength;
         c->numPages = numPages;
         c->cpuWorkMultiplier = cpuWorkMultiplier;
+        c->lastPageData = mem[0];
         PBKDF2_SHA256((uint8 *)(void *)(mem + t*8*sizeof(uint64)), 8*sizeof(uint64), salt, saltSize, 1,
-            (uint8 *)(void *)(c->key + t), 8*sizeof(uint64));
+            (uint8 *)(void *)(c->key), 8*sizeof(uint64));
     }
     for(t = 0; t < numThreads; t++) {
         c = contexts + t;
@@ -204,6 +205,6 @@ bool keystretch(uint32 sha256HashRounds, uint32 cpuWorkMultiplier, uint64 memory
 // hashing session.
 int PHS(void *out, size_t outlen, const void *in, size_t inlen, const void *salt, size_t saltlen,
         unsigned int t_cost, unsigned int m_cost) {
-    return keystretch(4096, t_cost, m_cost, 16*(1 << 10), 2, out, outlen, salt, saltlen, (void *)in, inlen,
+    return keystretch(4096, t_cost, m_cost, 16*(1 << 10), 1, out, outlen, salt, saltlen, (void *)in, inlen,
         false, false, false);
 }

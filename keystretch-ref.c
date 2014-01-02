@@ -150,6 +150,6 @@ bool keystretch(uint32 sha256HashRounds, uint32 cpuWorkMultiplier, uint64 memory
 // hashing session.
 int PHS(void *out, size_t outlen, const void *in, size_t inlen, const void *salt, size_t saltlen,
         unsigned int t_cost, unsigned int m_cost) {
-    return keystretch(4096, t_cost, m_cost, 16*(1 << 10), 2, out, outlen, salt, saltlen, (void *)in, inlen,
+    return keystretch(4096, t_cost, m_cost, 16*(1 << 10), 1, out, outlen, salt, saltlen, (void *)in, inlen,
         false, false, false);
 }
