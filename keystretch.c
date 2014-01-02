@@ -112,8 +112,8 @@ static void *hashMem(void *threadContextPtr) {
 }
 
 /* This is the main key derivation function.  Parameters are:
-    initialHashingFactor - Parameter for increasing initial key stretching beyond 4096 SHA-256 rounds
-    hashingMultipler     - How many times to repeat hashing the entire memory.  Most often, this should be 1
+    sha256HashRounds     - Parameter for increasing initial key stretching beyond 4096 SHA-256 rounds
+    cpuWorkMultiplier    - How many times to repeat hashing the entire memory.  Most often, this should be 1
     memorySize           - Memory to hash in bytes
     pageSize             - Memory block size assumed to fit in L1 cache - must be a power of 2
     numThreads,          - Number of threads to run in parallel to help fill memory bandwidth
@@ -123,6 +123,7 @@ static void *hashMem(void *threadContextPtr) {
     saltSize             - Length of salt in bytes
     password             - The password, which may contain 0's or any other value
     passwordSize         - Length of password in bytes
+    clearPassword        - If true, set password to 0's after initial hashing
     clearMemory          - Set memory to 0's before returning
     freeMemory           - Free memory before returning
 */
@@ -132,7 +133,8 @@ bool keystretch(uint32 sha256HashRounds, uint32 cpuWorkMultiplier, uint64 memory
 
     printf("sha256HashRounds:%u cpuWorkMultiplier:%u memorySize:%llu pageSize:%u numThreads:%u\n",
         sha256HashRounds, cpuWorkMultiplier, memorySize, pageSize, numThreads);
-    // Step 1: Do the 2X or more of the max key stretching OpenSSL Truecrypt allow, and and clear the password
+
+    // Step 1: Do as much or more of the max key stretching OpenSSL Truecrypt allow, and and clear the password
     PBKDF2_SHA256(password, passwordSize, salt, saltSize, sha256HashRounds, derivedKey, derivedKeySize);
     if(clearPassword) {
         memset(password, '\0', passwordSize); // It's a good idea to clear the password ASAP
