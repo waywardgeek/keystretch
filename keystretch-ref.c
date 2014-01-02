@@ -9,13 +9,12 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <string.h>
-#include <pthread.h>
 #include "sha256.h"
 #include "keystretch.h"
 
-typedef struct threadContextStruct *ThreadContext;
+typedef struct ContextStruct *Context;
 
-struct threadContextStruct {
+struct ContextStruct {
     uint64 key[8];
     uint64 lastPageData;
     uint64 *mem;
@@ -25,7 +24,7 @@ struct threadContextStruct {
 };
 
 // Fill toPage, hashing with the key and fromPage as we go.
-static void fillPage(ThreadContext c, uint32 fromPageNum, uint32 toPageNum) {
+static void fillPage(Context c, uint32 fromPageNum, uint32 toPageNum) {
     uint64 *fromPage = c->mem + fromPageNum*c->pageLength;
     uint32 workMultiplier = c->cpuWorkMultiplier;
     while(workMultiplier--) {
@@ -42,8 +41,7 @@ static void fillPage(ThreadContext c, uint32 fromPageNum, uint32 toPageNum) {
 }
 
 // Hash pages randomly into the derived key.
-static void *hashMem(void *threadContextPtr) {
-    ThreadContext c = (ThreadContext)threadContextPtr;
+static void hashMem(Context c) {
     uint32 fromPageNum = 0;
     uint32 toPageNum;
     uint32 numPages = c->numPages;
@@ -53,7 +51,6 @@ static void *hashMem(void *threadContextPtr) {
         fromPageNum = hash % toPageNum;
         fillPage(c, fromPageNum, toPageNum);
     }
-    pthread_exit(NULL);
 }
 
 /* This is the main key derivation function.  Parameters are:
@@ -61,7 +58,7 @@ static void *hashMem(void *threadContextPtr) {
     cpuWorkMultiplier    - How many times to repeat hashing the entire memory.  Most often, this should be 1
     memorySize           - Memory to hash in bytes
     pageSize             - Memory block size assumed to fit in L1 cache - must be a power of 2
-    numThreads,          - Number of threads to run in parallel to help fill memory bandwidth
+    numThreads,          - Number of threads - ignored in ref version
     derivedKey           - Result derived key
     derivedKeySize       - Length of the result key - must be a power of 2
     salt                 - Salt/nonce
@@ -95,44 +92,24 @@ bool keystretch(uint32 sha256HashRounds, uint32 cpuWorkMultiplier, uint64 memory
         return false;
     }
 
-    // Initialize thread keys from derivedKey, and erase derivedKey
+    // Initialize key from derivedKey, and erase derivedKey
     PBKDF2_SHA256(derivedKey, derivedKeySize, salt, saltSize, 1, (uint8 *)(void *)mem, pageLength*sizeof(uint64));
     memset(derivedKey, '\0', derivedKeySize);
 
-    pthread_t threads[MAX_THREADS];
-    struct threadContextStruct contexts[MAX_THREADS];
-    ThreadContext c = NULL;
-    // Launch the threads, using a spin-lock for synchronization.  The first thread starts
-    // with the spin-lock, and then passes it to the next round-robin.
-    int rc;
-    long t;
-    for(t = 0; t < numThreads; t++) {
-        c = contexts + t;
-        c->mem = mem;
-        c->pageLength = pageLength;
-        c->numPages = numPages;
-        c->cpuWorkMultiplier = cpuWorkMultiplier;
-        c->lastPageData = mem[0];
-        PBKDF2_SHA256((uint8 *)(void *)(mem + t*8*sizeof(uint64)), 8*sizeof(uint64), salt, saltSize, 1,
-            (uint8 *)(void *)(c->key), 8*sizeof(uint64));
-    }
-    for(t = 0; t < numThreads; t++) {
-        c = contexts + t;
-        rc = pthread_create(&threads[t], NULL, hashMem, (void *)c);
-        if (rc){
-            fprintf(stderr, "Unable to start threads\n");
-            return false;
-        }
-    }
-    // Wait for threads to finish
-    for(t = 0; t < numThreads; t++) {
-        (void)pthread_join(threads[t], NULL);
-    }
+    struct ContextStruct c;
+    c.mem = mem;
+    c.pageLength = pageLength;
+    c.numPages = numPages;
+    c.cpuWorkMultiplier = cpuWorkMultiplier;
+    c.lastPageData = mem[0];
+    PBKDF2_SHA256((uint8 *)(void *)mem, 8*sizeof(uint64), salt, saltSize, 1, (uint8 *)(void *)(c.key), 8*sizeof(uint64));
+
+    hashMem(&c);
 
     // Hash the last page to form the key.
     PBKDF2_SHA256((uint8 *)(void *)(mem + (numPages-1)*pageLength), pageLength*sizeof(uint64), salt, saltSize, 1,
         derivedKey, derivedKeySize);
-    memset(contexts, '\0', MAX_THREADS*sizeof(struct threadContextStruct));
+    memset((void *)&c, '\0', sizeof(struct ContextStruct));
 
     // Clear used memory if requested.  This slows down the code by about 1/3.
     if(clearMemory) {
