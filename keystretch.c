@@ -73,6 +73,7 @@ static void fillPage(ThreadContext c, uint32 fromPageNum, uint32 toPageNum) {
             *toPage++ = key6;
             *toPage++ = key7;
 
+            /*
             printf("%llu\n", key0);
             printf("%llu\n", key1);
             printf("%llu\n", key2);
@@ -81,6 +82,7 @@ static void fillPage(ThreadContext c, uint32 fromPageNum, uint32 toPageNum) {
             printf("%llu\n", key5);
             printf("%llu\n", key6);
             printf("%llu\n", key7);
+            */
         }
     }
     c->key[0] = key0;
