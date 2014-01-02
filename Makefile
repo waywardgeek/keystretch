@@ -1,10 +1,13 @@
-all: keystretch phs_keystretch memorycpy
+all: keystretch keystretch-ref phs_keystretch memorycpy
 
-keystretch: keystretch_main.c keystretch.c sha256.c keystretch.h sha256.h
-	gcc -Wall -m64 -O3 -pthread keystretch_main.c keystretch.c sha256.c -o keystretch
+keystretch: keystretch_main.c keystretch-nosse.c sha256.c keystretch.h sha256.h
+	gcc -Wall -m64 -O3 -pthread keystretch_main.c keystretch-nosse.c sha256.c -o keystretch
 
-phs_keystretch: phs_main.c keystretch.c sha256.c keystretch.h sha256.h
-	gcc -Wall -m64 -O3 -pthread phs_main.c keystretch.c sha256.c -o phs_keystretch
+keystretch-ref: keystretch_main.c keystretch-ref.c sha256.c keystretch.h sha256.h
+	gcc -Wall -m64 -O3 -pthread keystretch_main.c keystretch-ref.c sha256.c -o keystretch-ref
+
+phs_keystretch: phs_main.c keystretch-nosse.c sha256.c keystretch.h sha256.h
+	gcc -Wall -m64 -O3 -pthread phs_main.c keystretch-nosse.c sha256.c -o phs_keystretch
 
 memorycpy: memorycpy.c
 	gcc -Wall -m64 -O3 memorycpy.c -o memorycpy

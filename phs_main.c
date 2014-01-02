@@ -141,6 +141,7 @@ int main(int argc, char **argv) {
         return 1;
     }
     printHex(derivedKey, derivedKeySize);
+    printf("\n");
     memset(derivedKey, '\0', derivedKeySize*sizeof(uint8));
     free(derivedKey);
     return 0;
