@@ -39,7 +39,7 @@ static void fillPage(ThreadContext c, uint32 fromPageNum, uint32 toPageNum) {
     uint64 lastPageData =  c->lastPageData;
     uint64 pageData0, pageData1, pageData2, pageData3;
     uint64 pageData4, pageData5, pageData6, pageData7 = 0;
-    uint32 pageMask = pageLength - 1;
+    uint32 pageMask = (pageLength - 1) & ~0x7;
     uint32 workMultiplier = c->cpuWorkMultiplier;
     while(workMultiplier--) {
         uint32 numLoops = pageLength >> 3;
