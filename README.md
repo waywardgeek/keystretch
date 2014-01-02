@@ -85,3 +85,8 @@ sys     0m0.060s
 
 The speedup factor per unit memory is 8.3X, even though keystretch performs 4096 rounds of
 SHA-256 hashing of the password before using this intermediate derived key to hash memory.
+
+To run dieharder, use the dieharder.header and data generated with the printf statements
+commented in, and run:
+
+dieharder -a -g 202 -f foo

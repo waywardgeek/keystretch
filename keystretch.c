@@ -40,8 +40,8 @@ static void fillPage(ThreadContext c, uint32 fromPageNum, uint32 toPageNum) {
     uint64 pageData0, pageData1, pageData2, pageData3;
     uint64 pageData4, pageData5, pageData6, pageData7 = 0;
     uint32 pageMask = pageLength - 1;
-    uint32 i;
-    for(i = 0; i < c->cpuWorkMultiplier; i++) {
+    uint32 workMultiplier = c->cpuWorkMultiplier;
+    while(workMultiplier--) {
         uint32 numLoops = pageLength >> 3;
         uint64 *toPage = c->mem + toPageNum*pageLength;
         while(numLoops--) {
@@ -73,7 +73,6 @@ static void fillPage(ThreadContext c, uint32 fromPageNum, uint32 toPageNum) {
             *toPage++ = key6;
             *toPage++ = key7;
 
-    /*
             printf("%llu\n", key0);
             printf("%llu\n", key1);
             printf("%llu\n", key2);
@@ -82,8 +81,6 @@ static void fillPage(ThreadContext c, uint32 fromPageNum, uint32 toPageNum) {
             printf("%llu\n", key5);
             printf("%llu\n", key6);
             printf("%llu\n", key7);
-    */
-
         }
     }
     c->key[0] = key0;
@@ -94,7 +91,7 @@ static void fillPage(ThreadContext c, uint32 fromPageNum, uint32 toPageNum) {
     c->key[5] = key5;
     c->key[6] = key6;
     c->key[7] = key7;
-    c->lastPageData = pageData7;
+    c->lastPageData = lastPageData;
 }
 
 // Hash pages randomly into the derived key.
