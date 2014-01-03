@@ -9,7 +9,7 @@
 typedef unsigned char uint8;
 typedef unsigned long long uint64;
 
-#define NUM_THREADS 1
+#define NUM_THREADS 2
 #define TOTAL_MEM (1LL << 31) // 2GB
 #define PAGE_LENGTH ((16*1024)/sizeof(uint64)) // 16KB
 #define NUM_PAGES (TOTAL_MEM/(NUM_THREADS*sizeof(uint64)*PAGE_LENGTH))
@@ -30,6 +30,7 @@ static inline void hashPage(uint64 *toPage, uint64 *prevPage, uint64 *fromPage) 
     fromPage++;
     for(i = 1; i < PAGE_LENGTH - 1; i++) {
         *toPage++ = *prevPage + ((*fromPage * *(prevPage + 1)) ^ *(fromPage - 1));
+        printf("%llu\n", *(toPage-1));
         prevPage++;
         fromPage++;
     }
